@@ -22,36 +22,36 @@ function sleep(ms) {
 }
 
 // Try to locate Chrome executable reliably
+// REPLACE your old function with this one
+
+// Try to locate Chrome executable reliably (CORRECTED VERSION)
 function findChromeExecutable() {
-  // 1. Env var
+  // 1. Check for the explicit environment variable first. This is the best method.
   if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
     console.log('Using env PUPPETEER_EXECUTABLE_PATH:', process.env.PUPPETEER_EXECUTABLE_PATH);
     return process.env.PUPPETEER_EXECUTABLE_PATH;
   }
 
-  // 2. Auto-detect in cache
-  const base = '/opt/render/.cache/puppeteer/chrome';
-  if (fs.existsSync(base)) {
-    const versions = fs.readdirSync(base).filter(f => f.startsWith('linux-'));
+  // 2. Auto-detect in Render's cache directory as a fallback.
+  const cacheBase = '/opt/render/.cache/puppeteer/chrome';
+  if (fs.existsSync(cacheBase)) {
+    const versions = fs.readdirSync(cacheBase).filter(f => f.startsWith('linux-'));
     if (versions.length > 0) {
-      const latest = versions.sort().reverse()[0];
-      // check both …/chrome and …/chrome/chrome
-      const candidateDir = path.join(base, latest, 'chrome-linux64', 'chrome');
-      const candidateBin = path.join(candidateDir, 'chrome');
+      // Get the latest downloaded version
+      const latestVersion = versions.sort().reverse()[0];
+      
+      // The path to the executable file is the directory named 'chrome'
+      const executablePath = path.join(cacheBase, latestVersion, 'chrome-linux64', 'chrome');
 
-      if (fs.existsSync(candidateBin)) {
-        console.log('Auto-detected chrome binary at:', candidateBin);
-        return candidateBin;
-      }
-      if (fs.existsSync(candidateDir)) {
-        console.log('Auto-detected chrome folder at:', candidateDir);
-        return candidateDir;
+      if (fs.existsSync(executablePath)) {
+        console.log('Auto-detected chrome binary at:', executablePath);
+        return executablePath;
       }
     }
   }
 
-  console.warn('No chrome binary found, falling back to default');
-  return null;
+  console.warn('Could not find Chrome executable. Falling back to Puppeteer default.');
+  return null; // Let puppeteer try to find it
 }
 
 
