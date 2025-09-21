@@ -25,10 +25,11 @@ async function launchBrowser() {
   const execPath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
   try {
     const browser = await puppeteer.launch({
-      headless: 'new',
-      args: commonArgs,
-      executablePath: execPath,
-    });
+  headless: "new",
+  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || 
+    "/opt/render/.cache/puppeteer/chrome/linux-140.0.7339.82/chrome-linux64/chrome",
+  args: ["--no-sandbox", "--disable-setuid-sandbox"]
+});
     return browser;
   } catch {
     return puppeteer.launch({
