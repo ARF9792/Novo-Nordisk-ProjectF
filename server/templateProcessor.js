@@ -23,30 +23,37 @@ function sleep(ms) {
 
 // Try to locate Chrome executable reliably
 function findChromeExecutable() {
-  // 1. Prefer explicit env var
+  // 1. Env var
   if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
     console.log('Using env PUPPETEER_EXECUTABLE_PATH:', process.env.PUPPETEER_EXECUTABLE_PATH);
     return process.env.PUPPETEER_EXECUTABLE_PATH;
   }
 
-  // 2. Auto-detect in Puppeteer cache
+  // 2. Auto-detect in cache
   const base = '/opt/render/.cache/puppeteer/chrome';
   if (fs.existsSync(base)) {
     const versions = fs.readdirSync(base).filter(f => f.startsWith('linux-'));
     if (versions.length > 0) {
-      // pick the highest version folder
       const latest = versions.sort().reverse()[0];
-      const candidate = path.join(base, latest, 'chrome-linux64', 'chrome');
-      if (fs.existsSync(candidate)) {
-        console.log('Auto-detected chrome binary at:', candidate);
-        return candidate;
+      // check both …/chrome and …/chrome/chrome
+      const candidateDir = path.join(base, latest, 'chrome-linux64', 'chrome');
+      const candidateBin = path.join(candidateDir, 'chrome');
+
+      if (fs.existsSync(candidateBin)) {
+        console.log('Auto-detected chrome binary at:', candidateBin);
+        return candidateBin;
+      }
+      if (fs.existsSync(candidateDir)) {
+        console.log('Auto-detected chrome folder at:', candidateDir);
+        return candidateDir;
       }
     }
   }
 
-  console.warn('No chrome binary found in cache, will try Puppeteer default');
+  console.warn('No chrome binary found, falling back to default');
   return null;
 }
+
 
 async function launchBrowser() {
   const args = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'];
