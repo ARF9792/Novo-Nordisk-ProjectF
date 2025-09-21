@@ -1,9 +1,10 @@
 // server/templateProcessor.js
 const fs = require('fs');
+const path = require('path');
 const PizZip = require('pizzip');
 const Docxtemplater = require('docxtemplater');
 const puppeteer = require('puppeteer');
-const mammoth = require('mammoth'); // 👈 NEW
+const mammoth = require('mammoth');
 const { PDFDocument } = require('pdf-lib');
 
 function extractPlaceholders(text) {
@@ -20,22 +21,50 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Try to locate Chrome executable reliably
+function findChromeExecutable() {
+  // 1. Prefer explicit env var
+  if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
+    console.log('Using env PUPPETEER_EXECUTABLE_PATH:', process.env.PUPPETEER_EXECUTABLE_PATH);
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+
+  // 2. Auto-detect in Puppeteer cache
+  const base = '/opt/render/.cache/puppeteer/chrome';
+  if (fs.existsSync(base)) {
+    const versions = fs.readdirSync(base).filter(f => f.startsWith('linux-'));
+    if (versions.length > 0) {
+      // pick the highest version folder
+      const latest = versions.sort().reverse()[0];
+      const candidate = path.join(base, latest, 'chrome-linux64', 'chrome');
+      if (fs.existsSync(candidate)) {
+        console.log('Auto-detected chrome binary at:', candidate);
+        return candidate;
+      }
+    }
+  }
+
+  console.warn('No chrome binary found in cache, will try Puppeteer default');
+  return null;
+}
+
 async function launchBrowser() {
-  const commonArgs = ['--no-sandbox', '--disable-setuid-sandbox'];
-  const execPath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
+  const args = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'];
+  const execPath = findChromeExecutable();
+
   try {
     const browser = await puppeteer.launch({
-  headless: "new",
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || 
-    "/opt/render/.cache/puppeteer/chrome/linux-140.0.7339.82/chrome-linux64/chrome",
-  args: ["--no-sandbox", "--disable-setuid-sandbox"]
-});
+      headless: 'new',
+      executablePath: execPath || undefined,
+      args
+    });
+    console.log('Puppeteer launched successfully');
     return browser;
-  } catch {
+  } catch (err) {
+    console.error('Puppeteer launch failed, retrying fallback:', err.message);
     return puppeteer.launch({
       headless: true,
-      args: commonArgs,
-      executablePath: execPath,
+      args
     });
   }
 }
