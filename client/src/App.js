@@ -288,9 +288,6 @@ function App() {
                         disabled={loading}
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Supported formats: .docx, .pdf
-                    </p>
                   </div>
                 </div>
 
